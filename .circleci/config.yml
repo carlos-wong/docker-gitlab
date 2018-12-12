@@ -1,9 +1,24 @@
 version: 2
 jobs:
-  build:
-    working_directory: /workdir
+  shellcheck:
     docker:
-      - image: docker:17.06.0-ce-git
+      - image: nlknguyen/alpine-shellcheck:v0.4.6
+    steps:
+      - checkout
+      - run:
+          name: Check Docker Hub Hooks
+          command: |
+            find hooks -type f | wc -l
+            find hooks -type f | xargs shellcheck -e SC2086 --external-sources
+      - run:
+          name: Check Scripts
+          command: |
+            find . -type f -name '*.sh' | wc -l
+            find . -type f -name '*.sh' | xargs shellcheck -e SC2086 -e SC1090 --external-sources
+
+  build:
+    docker:
+      - image: circleci/golang:1-stretch-browsers-legacy
         environment:
           IMAGE_NAME: "sameersbn/gitlab"
 
@@ -11,7 +26,7 @@ jobs:
       - checkout
 
       - setup_remote_docker:
-          version: 17.06.0-ce
+          version: 18.03.1-ce
 
       - run:
           name: Docker info
@@ -21,51 +36,57 @@ jobs:
 
       - restore_cache:
           keys:
-            - cache-{{ .Branch }}
+            - cache-v2-{{ .Branch }}
           paths:
-            - /cache/layers.tar
+            - /tmp/cache/layers.tar
 
       - run:
           name: Loading docker cache
           command: |
-            if [[ -f /cache/layers.tar ]]; then
-              docker load -i /cache/layers.tar
+            if [[ -f /tmp/cache/layers.tar ]]; then
+              echo "Loading cache ..."
+              docker load -i /tmp/cache/layers.tar
+              docker image ls
+            else
+              echo "Couldn't find any caches"
             fi
 
       - run:
           name: Build docker image
           command: |
-            docker build --cache-from=${IMAGE_NAME} -t ${IMAGE_NAME} .
+            docker build \
+              --pull \
+              --cache-from=${IMAGE_NAME} \
+              --build-arg BUILD_DATE="$(date +"%Y-%m-%d %H:%M:%S%:z")" \
+              --build-arg VCS_REF=$(git rev-parse --short HEAD) \
+              -t ${IMAGE_NAME}:$(cat VERSION) .
 
       - run:
           name: Launching container for testing
           command: |
-            docker network create testnet
-            docker run --name gitlab -d --net testnet ${IMAGE_NAME}
+            docker-compose up -d
+            sleep 120
 
       - run:
           name: Testing image
           command: |
-            echo "TODO"
+            docker run --network container:$(docker-compose ps -q gitlab) \
+              appropriate/curl --retry 15 --retry-delay 5 --retry-connrefused http://localhost/explore
 
       - run:
           name: Generate docker build image cache
           command: |
-            mkdir -p /cache
-            docker save -o /cache/layers.tar ${IMAGE_NAME}
+            mkdir -p /tmp/cache/
+            docker save -o /tmp/cache/layers.tar ${IMAGE_NAME}
 
       - save_cache:
-          key: cache-{{ .Branch }}-{{ epoch }}
+          key: cache-v2-{{ .Branch }}
           paths:
-            - /cache/layers.tar
+            - /tmp/cache/layers.tar
 
 workflows:
   version: 2
   build-and-test:
     jobs:
-      - build:
-          filters:
-            branches:
-              only: /.*/
-            tags:
-              only: /.*/
+      - shellcheck
+      - build
