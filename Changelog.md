@@ -3,6 +3,37 @@
 This file only reflects the changes that are made in this image. Please refer to the upstream GitLab [CHANGELOG](
 https://gitlab.com/gitlab-org/gitlab-ce/blob/master/CHANGELOG.md) for the list of changes in GitLab.
 
+**11.6.1**
+- gitlab: upgrade CE to v11.6.1
+- Added `GITLAB_IMPERSONATION_ENABLED`
+- Added `OAUTH_SAML_ATTRIBUTE_STATEMENTS_USERNAME`
+- Added `GITLAB_PAGES_ACCESS_CONTROL_SERVER`
+- Added `GITLAB_PAGES_ACCESS_CLIENT_ID`
+- Added `GITLAB_PAGES_ACCESS_CLIENT_SECRET`
+- Added `GITLAB_PAGES_ACCESS_SECRET`
+- Added `GITLAB_PAGES_ACCESS_REDIRECT_URI`
+
+**11.6.0**
+- gitlab: upgrade CE to v11.6.0
+- Update gitaly to 1.7.1
+- Update gitlab-shell to 8.4.3
+- Update gitlab-workhorse to 7.6.0
+- Update golang to 1.11.4
+- Added `LDAP_USER_ATTRIBUTE_USERNAME`
+- Added `LDAP_USER_ATTRIBUTE_MAIL`
+- Added `LDAP_USER_ATTRIBUTE_NAME`
+- Added `LDAP_USER_ATTRIBUTE_FIRSTNAME`
+- Added `LDAP_USER_ATTRIBUTE_LASTNAME`
+- Added `GITLAB_BACKUP_DIR_CHOWN`
+- Added `GITLAB_BACKUP_DIR_GROUP`
+- Added `GITLAB_PAGES_NGINX_PROXY`
+
+**11.5.5**
+- gitlab: upgrade CE to v11.5.5
+
+**11.5.4**
+- gitlab: upgrade CE to v11.5.4
+
 **11.5.3**
 - gitlab: upgrade CE to v11.5.3
 
