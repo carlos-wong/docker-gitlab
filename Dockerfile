@@ -4,7 +4,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION=12.0.0
 
-ENV GITLAB_VERSION=carlos/12.1.0 \
+ENV GITLAB_VERSION=carlos/12.1.2 \
     RUBY_VERSION=2.6 \
     GOLANG_VERSION=1.12.6 \
     GITLAB_SHELL_VERSION=9.3.0 \
@@ -43,6 +43,7 @@ RUN apt-get update \
  && apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
       sudo supervisor logrotate locales curl \
+      postgresql postgresql-contrib\
       nginx openssh-server mysql-client postgresql-client redis-tools \
       git-core gnupg2 ruby${RUBY_VERSION} python3 python3-docutils nodejs yarn gettext-base \
       libmysqlclient20 libpq5 zlib1g libyaml-0-2 libssl1.0.0 \
