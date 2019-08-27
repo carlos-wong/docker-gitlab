@@ -20,7 +20,7 @@ export GOROOT PATH
 
 BUILD_DEPENDENCIES="gcc g++ make patch pkg-config cmake paxctl \
   libc6-dev ruby${RUBY_VERSION}-dev \
-  libmysqlclient-dev libpq-dev zlib1g-dev libyaml-dev libssl-dev \
+  libpq-dev zlib1g-dev libyaml-dev libssl-dev \
   libgdbm-dev libreadline-dev libncurses5-dev libffi-dev \
   libxml2-dev libxslt-dev libcurl4-openssl-dev libicu-dev \
   gettext libkrb5-dev"
@@ -42,9 +42,9 @@ DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y ${BUIL
 # Applying the mark late here does make the build usable on PaX kernels, but
 # still the build itself must be executed on a non-PaX kernel. It's done here
 # only for simplicity.
-paxctl -Cm "$(command -v ruby${RUBY_VERSION})"
+paxctl -cvm "$(command -v ruby${RUBY_VERSION})"
 # https://en.wikibooks.org/wiki/Grsecurity/Application-specific_Settings#Node.js
-paxctl -Cm "$(command -v nodejs)"
+paxctl -cvm "$(command -v nodejs)"
 
 # remove the host keys generated during openssh-server installation
 rm -rf /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
@@ -153,7 +153,7 @@ if [[ -d ${GEM_CACHE_DIR} ]]; then
   chown -R ${GITLAB_USER}: ${GITLAB_INSTALL_DIR}/vendor/cache
 fi
 
-exec_as_git bundle install -j"$(nproc)" --deployment --without development test aws
+exec_as_git bundle install -j"$(nproc)" --deployment --without development test mysql aws
 
 # make sure everything in ${GITLAB_HOME} is owned by ${GITLAB_USER} user
 chown -R ${GITLAB_USER}: ${GITLAB_HOME}
