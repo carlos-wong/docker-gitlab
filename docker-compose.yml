@@ -22,7 +22,7 @@ services:
 
   gitlab:
     restart: always
-    image: carloswong1224/docker-gitlab:12.2.1
+    image: carloswong1224/docker-gitlab:12.2.4
     depends_on:
     - redis
     - postgresql
