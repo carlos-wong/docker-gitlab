@@ -4,7 +4,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION=12.2.1
 
-ENV GITLAB_VERSION=carlos/12.2.3 \
+ENV GITLAB_VERSION=carlos/12.2.4 \
     RUBY_VERSION=2.6 \
     GOLANG_VERSION=1.12.9 \
     GITLAB_SHELL_VERSION=9.3.0 \
@@ -54,7 +54,8 @@ RUN set -ex && \
  && locale-gen en_US.UTF-8 \
  && DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales \
  && gem install --no-document bundler -v 1.17.3 \
- && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/*
+
 
 COPY assets/build/ ${GITLAB_BUILD_DIR}/
 RUN bash ${GITLAB_BUILD_DIR}/install.sh
