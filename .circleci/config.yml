@@ -60,12 +60,13 @@ jobs:
               --build-arg BUILD_DATE="$(date +"%Y-%m-%d %H:%M:%S%:z")" \
               --build-arg VCS_REF=$(git rev-parse --short HEAD) \
               -t ${IMAGE_NAME}:$(cat VERSION) .
+          no_output_timeout: 60m
 
       - run:
           name: Launching container for testing
           command: |
             docker-compose up -d
-            sleep 120
+            sleep 180
 
       - run:
           name: Testing image

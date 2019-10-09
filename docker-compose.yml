@@ -22,7 +22,7 @@ services:
 
   gitlab:
     restart: always
-    image: carloswong1224/docker-gitlab:12.3.1
+    image: carloswong1224/docker-gitlab:12.3.5
     depends_on:
     - redis
     - postgresql
@@ -145,7 +145,13 @@ services:
     - OAUTH_AUTH0_CLIENT_ID=
     - OAUTH_AUTH0_CLIENT_SECRET=
     - OAUTH_AUTH0_DOMAIN=
+    - OAUTH_AUTH0_SCOPE=
 
     - OAUTH_AZURE_API_KEY=
     - OAUTH_AZURE_API_SECRET=
     - OAUTH_AZURE_TENANT_ID=
+
+volumes:
+  redis-data:
+  postgresql-data:
+  gitlab-data:
