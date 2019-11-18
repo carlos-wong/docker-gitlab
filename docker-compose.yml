@@ -22,7 +22,7 @@ services:
 
   gitlab:
     restart: always
-    image: carloswong1224/docker-gitlab:12.4.2
+    image: carloswong1224/docker-gitlab:12.4.2.2
     depends_on:
     - redis
     - postgresql
@@ -50,7 +50,7 @@ services:
     - GITLAB_HTTPS=false
     - SSL_SELF_SIGNED=false
 
-    - GITLAB_HOST=localhost
+    - GITLAB_HOST=gitlabgdk.chinaeast2.cloudapp.chinacloudapi.cn
     - GITLAB_PORT=10080
     - GITLAB_SSH_PORT=10022
     - GITLAB_RELATIVE_URL_ROOT=
