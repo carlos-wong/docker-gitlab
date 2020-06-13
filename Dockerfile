@@ -2,15 +2,15 @@ FROM ubuntu:bionic-20200219
 
 ARG BUILD_DATE
 ARG VCS_REF
-ARG VERSION=12.8.9
+ARG VERSION=12.9.10
 
 ENV GITLAB_VERSION=carlos/12.9.10 \
     RUBY_VERSION=2.6 \
-    GOLANG_VERSION=1.13.7 \
-    GITLAB_SHELL_VERSION=11.0.0 \
-    GITLAB_WORKHORSE_VERSION=8.21.1 \
-    GITLAB_PAGES_VERSION=1.16.0 \
-    GITALY_SERVER_VERSION=12.8.8 \
+    GOLANG_VERSION=1.13.10 \
+    GITLAB_SHELL_VERSION=12.2.0 \
+    GITLAB_WORKHORSE_VERSION=8.25.2 \
+    GITLAB_PAGES_VERSION=1.17.0 \
+    GITALY_SERVER_VERSION=12.10.0 \
     GITLAB_USER="git" \
     GITLAB_HOME="/home/git" \
     GITLAB_LOG_DIR="/var/log/gitlab" \
@@ -63,6 +63,9 @@ RUN bash ${GITLAB_BUILD_DIR}/install.sh
 COPY assets/runtime/ ${GITLAB_RUNTIME_DIR}/
 COPY entrypoint.sh /sbin/entrypoint.sh
 RUN chmod 755 /sbin/entrypoint.sh
+
+ARG BUILD_DATE
+ARG VCS_REF
 
 LABEL \
     maintainer="sameer@damagehead.com" \
