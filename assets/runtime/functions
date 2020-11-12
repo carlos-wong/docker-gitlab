@@ -275,18 +275,12 @@ gitlab_configure_puma() {
 
   update_template ${GITLAB_PUMA_CONFIG} \
     GITLAB_INSTALL_DIR \
-    GITLAB_INSTALL_DIR \
-    GITLAB_INSTALL_DIR \
-    GITLAB_INSTALL_DIR \
     PUMA_THREADS_MIN \
     PUMA_THREADS_MAX \
     PUMA_WORKERS \
     PUMA_PER_WORKER_MAX_MEMORY_MB \
     PUMA_MASTER_MAX_MEMORY_MB \
-    GITLAB_INSTALL_DIR \
-    GITLAB_INSTALL_DIR \
-    PUMA_TIMEOUT \
-    GITLAB_INSTALL_DIR
+    PUMA_TIMEOUT
 }
 
 gitlab_configure_relative_url() {
@@ -564,12 +558,12 @@ gitlab_configure_oauth_bitbucket() {
 }
 
 gitlab_configure_oauth_saml_attribute_statements() {
-  if [[ -n ${OAUTH_SAML_ATTRIBUTE_STATEMENTS_EMAIL} && \
-        -n ${OAUTH_SAML_ATTRIBUTE_STATEMENTS_NAME} ]]; then
+  if [[ -n ${OAUTH_SAML_ATTRIBUTE_STATEMENTS_EMAIL} ]]; then
     echo "Configuring gitlab::oauth::saml::attribute_statements..."
     update_template ${GITLAB_CONFIG} \
       OAUTH_SAML_ATTRIBUTE_STATEMENTS_EMAIL \
       OAUTH_SAML_ATTRIBUTE_STATEMENTS_NAME \
+      OAUTH_SAML_ATTRIBUTE_STATEMENTS_USERNAME \
       OAUTH_SAML_ATTRIBUTE_STATEMENTS_FIRST_NAME \
       OAUTH_SAML_ATTRIBUTE_STATEMENTS_LAST_NAME
     # Remove undefined optional attributes
@@ -705,7 +699,7 @@ gitlab_configure_oauth() {
     OAUTH_EXTERNAL_PROVIDERS
 
   case ${OAUTH_AUTO_SIGN_IN_WITH_PROVIDER} in
-    cas3|google_oauth2|facebook|twitter|github|gitlab|bitbucket|saml|crowd|azure_oauth2|oauth2_generic)
+    cas3|google_oauth2|facebook|twitter|github|gitlab|bitbucket|saml|crowd|azure_oauth2|oauth2_generic|$OAUTH2_GENERIC_NAME)
       update_template ${GITLAB_CONFIG} OAUTH_AUTO_SIGN_IN_WITH_PROVIDER
       ;;
     *)
@@ -784,19 +778,20 @@ gitlab_configure_backups_schedule() {
     daily|weekly|monthly)
       if ! crontab -u ${GITLAB_USER} -l >/tmp/cron.${GITLAB_USER} 2>/dev/null || ! grep -q 'bundle exec rake gitlab:backup:create' /tmp/cron.${GITLAB_USER}; then
         echo "Configuring gitlab::backups::schedule..."
-        read hour min <<< ${GITLAB_BACKUP_TIME//[:]/ }
-        day_of_month=*
-        month=*
-        day_of_week=*
+        gitlab_backup_log="${GITLAB_LOG_DIR}/gitlab/gitlab-backup.log"
+        read -r hour min <<< "${GITLAB_BACKUP_TIME//[:]/ }"
+        day_of_month="*"
+        month="*"
+        day_of_week="*"
         case ${GITLAB_BACKUP_SCHEDULE} in
           daily) ;;
           weekly) day_of_week=0 ;;
           monthly) day_of_month=01 ;;
         esac
         if [[ -n ${GITLAB_BACKUP_DIR_GROUP} ]]; then
-            echo "$min $hour $day_of_month $month $day_of_week /bin/bash -l -c 'cd ${GITLAB_INSTALL_DIR} && bundle exec rake gitlab:backup:create SKIP=${GITLAB_BACKUP_SKIP} DIRECTORY=${GITLAB_BACKUP_DIR_GROUP} RAILS_ENV=${RAILS_ENV}'" >> /tmp/cron.${GITLAB_USER}
+            echo "$min $hour $day_of_month $month $day_of_week /bin/bash -l -c 'cd ${GITLAB_INSTALL_DIR} && bundle exec rake gitlab:backup:create SKIP=${GITLAB_BACKUP_SKIP} DIRECTORY=${GITLAB_BACKUP_DIR_GROUP} RAILS_ENV=${RAILS_ENV}' >> ${gitlab_backup_log} 2>&1" >> "/tmp/cron.${GITLAB_USER}"
         else
-            echo "$min $hour $day_of_month $month $day_of_week /bin/bash -l -c 'cd ${GITLAB_INSTALL_DIR} && bundle exec rake gitlab:backup:create SKIP=${GITLAB_BACKUP_SKIP} RAILS_ENV=${RAILS_ENV}'" >> /tmp/cron.${GITLAB_USER}
+            echo "$min $hour $day_of_month $month $day_of_week /bin/bash -l -c 'cd ${GITLAB_INSTALL_DIR} && bundle exec rake gitlab:backup:create SKIP=${GITLAB_BACKUP_SKIP} RAILS_ENV=${RAILS_ENV}' >> ${gitlab_backup_log} 2>&1" >> "/tmp/cron.${GITLAB_USER}"
         fi
         crontab -u ${GITLAB_USER} /tmp/cron.${GITLAB_USER}
       fi
@@ -873,7 +868,7 @@ gitlab_configure_backups() {
     GITLAB_BACKUP_ARCHIVE_PERMISSIONS
   gitlab_configure_backups_schedule
   if [[ ${AWS_BACKUPS} != true && ${GCS_BACKUPS} != true ]]; then
-    exec_as_git sed -i "/\s\+upload:/,/#end-gcs/d" ${GITLAB_CONFIG}
+    exec_as_git sed -i "/\s\+#start-aws/,/#end-gcs/d" ${GITLAB_CONFIG}
     return 0
   fi
   if [[ ${AWS_BACKUPS} == true && ${GCS_BACKUPS} == true ]]; then
@@ -1232,6 +1227,7 @@ nginx_configure_gitlab_real_ip() {
 nginx_configure_gitlab() {
   echo "Configuring nginx::gitlab..."
   update_template ${GITLAB_NGINX_CONFIG} \
+    GITLAB_HOME \
     GITLAB_INSTALL_DIR \
     GITLAB_LOG_DIR \
     GITLAB_HOST \
@@ -1315,7 +1311,7 @@ map_uidgid() {
     echo "Mapping UID and GID for ${GITLAB_USER}:${GITLAB_USER} to $USERMAP_UID:$USERMAP_GID"
     groupmod -o -g ${USERMAP_GID} ${GITLAB_USER}
     sed -i -e "s|:${USERMAP_ORIG_UID}:${USERMAP_GID}:|:${USERMAP_UID}:${USERMAP_GID}:|" /etc/passwd
-    find ${GITLAB_HOME} -path ${GITLAB_DATA_DIR}/\* -prune -o -print0 | xargs -0 chown -h ${GITLAB_USER}:
+    find ${GITLAB_HOME} -path ${GITLAB_DATA_DIR}/\* \( ! -uid ${USERMAP_ORIG_UID} -o ! -gid ${USERMAP_ORIG_GID} \) -print0 | xargs -0 chown -h ${GITLAB_USER}: ${GITLAB_HOME}
   fi
 }
 
@@ -1346,6 +1342,10 @@ initialize_logdir() {
   mkdir -p ${GITLAB_LOG_DIR}/gitlab-shell
   chmod -R 0755 ${GITLAB_LOG_DIR}/gitlab-shell
   chown -R ${GITLAB_USER}: ${GITLAB_LOG_DIR}/gitlab-shell
+
+  mkdir -p ${GITLAB_LOG_DIR}/gitaly
+  chmod -R 0755 ${GITLAB_LOG_DIR}/gitaly
+  chown -R ${GITLAB_USER}: ${GITLAB_LOG_DIR}/gitaly
 }
 
 initialize_datadir() {
@@ -1510,12 +1510,17 @@ generate_ssh_host_keys() {
   chmod 0644 ${GITLAB_DATA_DIR}/ssh/*.pub
 }
 
+update_ssh_listen_port() {
+  sed -i "s|#Port 22|Port ${GITLAB_SSH_LISTEN_PORT}|g" /etc/ssh/sshd_config
+}
+
 initialize_system() {
   map_uidgid
   initialize_logdir
   initialize_datadir
   update_ca_certificates
   generate_ssh_host_keys
+  update_ssh_listen_port
   install_configuration_templates
   rm -rf /var/run/supervisor.sock
 }
@@ -1605,11 +1610,13 @@ configure_gitlab() {
     GITLAB_REPOS_DIR \
     GITLAB_DOWNLOADS_DIR \
     GITLAB_SHARED_DIR \
+    GITLAB_HOME \
     GITLAB_HOST \
     GITLAB_PORT \
     GITLAB_RELATIVE_URL_ROOT \
     GITLAB_HTTPS \
     GITLAB_SSH_HOST \
+    GITLAB_SSH_LISTEN_PORT \
     GITLAB_SSH_PORT \
     GITLAB_SIGNUP_ENABLED \
     GITLAB_IMPERSONATION_ENABLED \
